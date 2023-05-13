@@ -1,6 +1,6 @@
 #![allow(unused)]
 use std::{
-    cell::{Ref, RefCell},
+    cell::{Ref, RefCell, RefMut},
     rc::Rc,
 };
 
@@ -41,13 +41,6 @@ impl<T> List<T> {
     }
 
     pub fn push_back(&mut self, value: T) {
-        // create new node
-        // check if tail exist, if so
-        //    - replase list tail with new node
-        //    - old node next will link to new node
-        //    - new node prev will link to old node
-        // if not
-        //     - link head and tail to new node
         let new_node = Node::new(value);
         match self.tail.take() {
             Some(old_node) => {
@@ -102,6 +95,18 @@ impl<T> List<T> {
         self.tail
             .as_ref()
             .map(|node| Ref::map(node.borrow(), |node| &node.value))
+    }
+
+    pub fn peek_front_mut(&mut self) -> Option<RefMut<T>> {
+        self.head
+            .as_mut()
+            .map(|node| RefMut::map(node.borrow_mut(), |node| &mut node.value))
+    }
+
+    pub fn peek_back_mut(&mut self) -> Option<RefMut<T>> {
+        self.tail
+            .as_mut()
+            .map(|node| RefMut::map(node.borrow_mut(), |node| &mut node.value))
     }
 }
 
@@ -170,10 +175,14 @@ mod test {
         let mut list = List::new();
         assert!(list.peek_front().is_none());
         assert!(list.peek_back().is_none());
+        assert!(list.peek_front_mut().is_none());
+        assert!(list.peek_back_mut().is_none());
 
         list.push_front(1);
         list.push_front(2);
         assert_eq!(&*list.peek_front().unwrap(), &2);
+        assert_eq!(&mut *list.peek_front_mut().unwrap(), &mut 2);
         assert_eq!(&*list.peek_back().unwrap(), &1);
+        assert_eq!(&mut *list.peek_back_mut().unwrap(), &mut 1);
     }
 }
