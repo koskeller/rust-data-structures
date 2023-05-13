@@ -1,7 +1,11 @@
 #![allow(unused)]
-use std::rc::Rc;
+// Use Arc for multi-threaded cases.
+use std::sync::Arc;
 
-type Link<T> = Option<Rc<Node<T>>>;
+// Or use Rc instead for single-threaded.
+// use std::rc::Rc;
+
+type Link<T> = Option<Arc<Node<T>>>;
 
 pub struct List<T> {
     head: Link<T>,
@@ -23,7 +27,7 @@ impl<T> List<T> {
 
     pub fn prepend(&self, value: T) -> Self {
         Self {
-            head: Some(Rc::new(Node {
+            head: Some(Arc::new(Node {
                 next: self.head.clone(),
                 value,
             })),
@@ -62,7 +66,7 @@ impl<T> Drop for List<T> {
     fn drop(&mut self) {
         let mut head = self.head.take();
         while let Some(node) = head {
-            if let Ok(mut node) = Rc::try_unwrap(node) {
+            if let Ok(mut node) = Arc::try_unwrap(node) {
                 head = node.next.take();
             } else {
                 break;
