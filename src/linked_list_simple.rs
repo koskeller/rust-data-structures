@@ -1,20 +1,5 @@
 #![allow(unused)]
 
-// Enum will need to store some integer to indicate which variant of the enum it
-// represents (D1, D2, .. Dn). This is the tag of the enum. It will also need
-// enough space to store the largest of T1, T2, .. Tn (plus some extra space
-// to satisfy alignment requirements).
-//
-// The big takeaway here is that even though Empty is a single bit of information,
-// it necessarily consumes enough space for a pointer and an element, because it
-// has to be ready to become an Elem at any time. Therefore the first layout heap
-// allocates an extra element that's just full of junk, consuming a bit more space
-// than the second layout.
-// enum List<T> {
-//     Empty,
-//     Elem(T, Box<List<T>>),
-// }
-
 type Link<T> = Option<Box<Node<T>>>;
 
 pub struct List<T> {
@@ -35,7 +20,6 @@ impl<T> List<T> {
         let new = Box::new(Node {
             value,
             next: self.head.take(),
-            // next: std::mem::replace(&mut self.head, None),
         });
         self.head = Some(new);
     }
