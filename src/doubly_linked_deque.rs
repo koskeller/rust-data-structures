@@ -1,5 +1,8 @@
 #![allow(unused)]
-use std::{cell::RefCell, rc::Rc};
+use std::{
+    cell::{Ref, RefCell},
+    rc::Rc,
+};
 
 type Link<T> = Option<Rc<RefCell<Node<T>>>>;
 
@@ -51,6 +54,24 @@ impl<T> List<T> {
             Rc::try_unwrap(old_head).ok().unwrap().into_inner().value
         })
     }
+
+    pub fn peek_front(&self) -> Option<Ref<T>> {
+        self.head
+            .as_ref()
+            .map(|node| Ref::map(node.borrow(), |node| &node.value))
+    }
+
+    pub fn peek_back(&self) -> Option<Ref<T>> {
+        self.tail
+            .as_ref()
+            .map(|node| Ref::map(node.borrow(), |node| &node.value))
+    }
+}
+
+impl<T> Drop for List<T> {
+    fn drop(&mut self) {
+        while self.pop_front().is_some() {}
+    }
 }
 
 impl<T> Node<T> {
@@ -88,5 +109,17 @@ mod test {
 
         assert_eq!(list.pop_front(), Some(1));
         assert_eq!(list.pop_front(), None);
+    }
+
+    #[test]
+    fn peek() {
+        let mut list = List::new();
+        assert!(list.peek_front().is_none());
+        assert!(list.peek_back().is_none());
+
+        list.push_front(1);
+        list.push_front(2);
+        assert_eq!(&*list.peek_front().unwrap(), &2);
+        assert_eq!(&*list.peek_back().unwrap(), &1);
     }
 }
