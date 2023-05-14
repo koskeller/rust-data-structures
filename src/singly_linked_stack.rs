@@ -21,11 +21,7 @@ impl<T> List<T> {
         Self { head: None }
     }
 
-    pub fn head(&self) -> Option<&T> {
-        self.head.as_ref().map(|node| &node.value)
-    }
-
-    pub fn prepend(&self, value: T) -> Self {
+    pub fn push(&self, value: T) -> Self {
         Self {
             head: Some(Arc::new(Node {
                 next: self.head.clone(),
@@ -34,10 +30,14 @@ impl<T> List<T> {
         }
     }
 
-    pub fn tail(&self) -> Self {
+    pub fn pop(&self) -> Self {
         Self {
             head: self.head.as_ref().and_then(|node| node.next.clone()),
         }
+    }
+
+    pub fn peek(&self) -> Option<&T> {
+        self.head.as_ref().map(|node| &node.value)
     }
 
     fn iter(&self) -> Iter<T> {
@@ -82,27 +82,27 @@ mod test {
     #[test]
     fn basics() {
         let list = List::new();
-        assert_eq!(list.head(), None);
+        assert_eq!(list.peek(), None);
 
-        let list = list.prepend(1).prepend(2).prepend(3);
-        assert_eq!(list.head(), Some(&3));
+        let list = list.push(1).push(2).push(3);
+        assert_eq!(list.peek(), Some(&3));
 
-        let list = list.tail();
-        assert_eq!(list.head(), Some(&2));
+        let list = list.pop();
+        assert_eq!(list.peek(), Some(&2));
 
-        let list = list.tail();
-        assert_eq!(list.head(), Some(&1));
+        let list = list.pop();
+        assert_eq!(list.peek(), Some(&1));
 
-        let list = list.tail();
-        assert_eq!(list.head(), None);
+        let list = list.pop();
+        assert_eq!(list.peek(), None);
 
-        let list = list.tail();
-        assert_eq!(list.head(), None);
+        let list = list.pop();
+        assert_eq!(list.peek(), None);
     }
 
     #[test]
     fn iter() {
-        let list = List::new().prepend(1).prepend(2).prepend(3);
+        let list = List::new().push(1).push(2).push(3);
         let mut iter = list.iter();
         assert_eq!(iter.next(), Some(&3));
         assert_eq!(iter.next(), Some(&2));
