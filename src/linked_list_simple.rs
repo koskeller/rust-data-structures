@@ -107,6 +107,7 @@ impl<T> Drop for List<T> {
     }
 }
 
+#[cfg(test)]
 mod test {
     use super::*;
 
