@@ -6,27 +6,33 @@ use std::{
 
 type Link<T> = Option<Rc<RefCell<Node<T>>>>;
 
-struct List<T> {
+/// A doubly-linked list.
+///
+/// The `LinkedList` allows pushing and popping elements at either end
+/// in constant time.
+struct LinkedList<T> {
     head: Link<T>,
     tail: Link<T>,
 }
 
 struct Node<T> {
-    value: T,
     next: Link<T>,
     prev: Link<T>,
+    element: T,
 }
 
-impl<T> List<T> {
-    pub fn new() -> Self {
+impl<T> LinkedList<T> {
+    /// Creates an empty `LinkedList`.
+    pub const fn new() -> Self {
         Self {
             head: None,
             tail: None,
         }
     }
 
-    pub fn push_front(&mut self, value: T) {
-        let new_head = Node::new(value);
+    /// Adds an element first in the list.
+    pub fn push_front(&mut self, elt: T) {
+        let new_head = Node::new(elt);
         match self.head.take() {
             Some(old_head) => {
                 old_head.borrow_mut().prev = Some(new_head.clone());
@@ -40,8 +46,9 @@ impl<T> List<T> {
         }
     }
 
-    pub fn push_back(&mut self, value: T) {
-        let new_node = Node::new(value);
+    /// Appends an element to the back of a list.
+    pub fn push_back(&mut self, elt: T) {
+        let new_node = Node::new(elt);
         match self.tail.take() {
             Some(old_node) => {
                 old_node.borrow_mut().next = Some(new_node.clone());
@@ -55,6 +62,8 @@ impl<T> List<T> {
         }
     }
 
+    /// Removes the first element and returns it, or `None` if the list is
+    /// empty.
     pub fn pop_front(&mut self) -> Option<T> {
         self.head.take().map(|old_head| {
             match old_head.borrow_mut().next.take() {
@@ -66,10 +75,12 @@ impl<T> List<T> {
                     self.tail.take();
                 }
             }
-            Rc::try_unwrap(old_head).ok().unwrap().into_inner().value
+            Rc::try_unwrap(old_head).ok().unwrap().into_inner().element
         })
     }
 
+    /// Removes the last element from a list and returns it, or `None` if
+    /// it is empty.
     pub fn pop_back(&mut self) -> Option<T> {
         self.tail.take().map(|old_tail| {
             match old_tail.borrow_mut().prev.take() {
@@ -81,40 +92,49 @@ impl<T> List<T> {
                     self.head.take();
                 }
             }
-            Rc::try_unwrap(old_tail).ok().unwrap().into_inner().value
+            Rc::try_unwrap(old_tail).ok().unwrap().into_inner().element
         })
     }
 
-    pub fn peek_front(&self) -> Option<Ref<T>> {
+    /// Provides a reference to the front element, or `None` if the list is
+    /// empty.
+    pub fn front(&self) -> Option<Ref<T>> {
         self.head
             .as_ref()
-            .map(|node| Ref::map(node.borrow(), |node| &node.value))
+            .map(|node| Ref::map(node.borrow(), |node| &node.element))
     }
 
-    pub fn peek_back(&self) -> Option<Ref<T>> {
+    /// Provides a reference to the back element, or `None` if the list is
+    /// empty.
+    pub fn back(&self) -> Option<Ref<T>> {
         self.tail
             .as_ref()
-            .map(|node| Ref::map(node.borrow(), |node| &node.value))
+            .map(|node| Ref::map(node.borrow(), |node| &node.element))
     }
 
-    pub fn peek_front_mut(&mut self) -> Option<RefMut<T>> {
+    /// Provides a mutable reference to the front element, or `None` if the list
+    /// is empty.
+    pub fn front_mut(&mut self) -> Option<RefMut<T>> {
         self.head
             .as_mut()
-            .map(|node| RefMut::map(node.borrow_mut(), |node| &mut node.value))
+            .map(|node| RefMut::map(node.borrow_mut(), |node| &mut node.element))
     }
 
-    pub fn peek_back_mut(&mut self) -> Option<RefMut<T>> {
+    /// Provides a mutable reference to the back element, or `None` if the list
+    /// is empty.
+    pub fn back_mut(&mut self) -> Option<RefMut<T>> {
         self.tail
             .as_mut()
-            .map(|node| RefMut::map(node.borrow_mut(), |node| &mut node.value))
+            .map(|node| RefMut::map(node.borrow_mut(), |node| &mut node.element))
     }
 
+    /// Consumes the list into an iterator yielding elements by value.
     pub fn into_iter(self) -> IntoIter<T> {
         IntoIter(self)
     }
 }
 
-pub struct IntoIter<T>(List<T>);
+pub struct IntoIter<T>(LinkedList<T>);
 
 impl<T> Iterator for IntoIter<T> {
     type Item = T;
@@ -130,7 +150,7 @@ impl<T> DoubleEndedIterator for IntoIter<T> {
     }
 }
 
-impl<T> Drop for List<T> {
+impl<T> Drop for LinkedList<T> {
     fn drop(&mut self) {
         while self.pop_front().is_some() {}
     }
@@ -139,7 +159,7 @@ impl<T> Drop for List<T> {
 impl<T> Node<T> {
     pub fn new(value: T) -> Rc<RefCell<Self>> {
         Rc::new(RefCell::new(Self {
-            value,
+            element: value,
             next: None,
             prev: None,
         }))
@@ -148,11 +168,11 @@ impl<T> Node<T> {
 
 #[cfg(test)]
 mod test {
-    use super::List;
+    use super::LinkedList;
 
     #[test]
     fn basic_front() {
-        let mut list = List::new();
+        let mut list = LinkedList::new();
         assert_eq!(list.pop_front(), None);
 
         list.push_front(1);
@@ -172,7 +192,7 @@ mod test {
 
     #[test]
     fn basic_back() {
-        let mut list = List::new();
+        let mut list = LinkedList::new();
         assert_eq!(list.pop_back(), None);
 
         list.push_back(1);
@@ -192,23 +212,23 @@ mod test {
 
     #[test]
     fn peek() {
-        let mut list = List::new();
-        assert!(list.peek_front().is_none());
-        assert!(list.peek_back().is_none());
-        assert!(list.peek_front_mut().is_none());
-        assert!(list.peek_back_mut().is_none());
+        let mut list = LinkedList::new();
+        assert!(list.front().is_none());
+        assert!(list.back().is_none());
+        assert!(list.front_mut().is_none());
+        assert!(list.back_mut().is_none());
 
         list.push_front(1);
         list.push_front(2);
-        assert_eq!(&*list.peek_front().unwrap(), &2);
-        assert_eq!(&mut *list.peek_front_mut().unwrap(), &mut 2);
-        assert_eq!(&*list.peek_back().unwrap(), &1);
-        assert_eq!(&mut *list.peek_back_mut().unwrap(), &mut 1);
+        assert_eq!(&*list.front().unwrap(), &2);
+        assert_eq!(&mut *list.front_mut().unwrap(), &mut 2);
+        assert_eq!(&*list.back().unwrap(), &1);
+        assert_eq!(&mut *list.back_mut().unwrap(), &mut 1);
     }
 
     #[test]
     fn into_iter() {
-        let mut list = List::new();
+        let mut list = LinkedList::new();
         list.push_front(1);
         list.push_front(2);
         list.push_front(3);

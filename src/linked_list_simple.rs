@@ -7,48 +7,59 @@ pub struct List<T> {
 }
 
 struct Node<T> {
-    value: T,
     next: Link<T>,
+    element: T,
 }
 
 impl<T> List<T> {
+    /// Creates an empty `LinkedList`.
     pub fn new() -> Self {
         Self { head: None }
     }
 
+    /// Adds an element to the list.
     pub fn push(&mut self, value: T) {
         let new = Box::new(Node {
-            value,
+            element: value,
             next: self.head.take(),
         });
         self.head = Some(new);
     }
 
+    /// Removes the element and returns it, or `None` if the list is
+    /// empty.
     pub fn pop(&mut self) -> Option<T> {
         self.head.take().map(|node| {
             self.head = node.next;
-            node.value
+            node.element
         })
     }
 
+    /// Provides a reference to the element, or `None` if the list is
+    /// empty.
     pub fn peek(&self) -> Option<&T> {
-        self.head.as_ref().map(|node| &node.value)
+        self.head.as_ref().map(|node| &node.element)
     }
 
+    /// Provides a mutable reference to the element, or `None` if the list
+    /// is empty.
     pub fn peek_mut(&mut self) -> Option<&mut T> {
-        self.head.as_mut().map(|node| &mut node.value)
+        self.head.as_mut().map(|node| &mut node.element)
     }
 
+    /// Provides a forward iterator with owned elements.
     pub fn into_iter(self) -> IntoIter<T> {
         IntoIter(self)
     }
 
+    /// Provides a forward iterator.
     pub fn iter(&self) -> Iter<T> {
         Iter {
             next: self.head.as_deref(),
         }
     }
 
+    /// Provides a forward iterator with mutable references.
     pub fn iter_mut(&mut self) -> IterMut<T> {
         IterMut {
             next: self.head.as_deref_mut(),
@@ -74,7 +85,7 @@ impl<'a, T> Iterator for Iter<'a, T> {
     fn next(&mut self) -> Option<Self::Item> {
         self.next.map(|node| {
             self.next = node.next.as_deref();
-            &node.value
+            &node.element
         })
     }
 }
@@ -89,7 +100,7 @@ impl<'a, T> Iterator for IterMut<'a, T> {
     fn next(&mut self) -> Option<Self::Item> {
         self.next.take().map(|node| {
             self.next = node.next.as_deref_mut();
-            &mut node.value
+            &mut node.element
         })
     }
 }
