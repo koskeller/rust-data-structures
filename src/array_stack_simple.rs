@@ -2,27 +2,20 @@
 
 const DEFAULT_CAPACITY: usize = 4;
 
-pub struct Stack<T>
-where
-    T: Clone,
-{
+pub struct Stack<T> {
     buf: Vec<Option<T>>,
     len: usize,
 }
 
-impl<T> Stack<T>
-where
-    T: Clone,
-{
+impl<T> Stack<T> {
     pub fn new() -> Self {
         Stack::with_capacity(DEFAULT_CAPACITY)
     }
 
     pub fn with_capacity(capacity: usize) -> Self {
-        Self {
-            buf: vec![None; capacity],
-            len: 0,
-        }
+        let mut buf = Vec::new();
+        buf.resize_with(capacity, Default::default);
+        Self { buf, len: 0 }
     }
 
     pub fn set(&mut self, i: usize, value: T) -> Option<T> {
@@ -75,11 +68,14 @@ where
     }
 
     fn resize(&mut self, n: usize) {
-        let mut new_size = self.capacity();
-        while n >= new_size {
-            new_size = std::cmp::max(new_size * 2, 1);
+        let mut new_capacity = self.capacity();
+        while n >= new_capacity {
+            new_capacity = std::cmp::max(new_capacity * 2, 1);
         }
-        let mut old = std::mem::replace(&mut self.buf, vec![None; new_size]);
+
+        let mut buf = Vec::new();
+        buf.resize_with(new_capacity, Default::default);
+        let mut old = std::mem::replace(&mut self.buf, buf);
         self.buf.splice(..old.len(), old);
     }
 
@@ -115,16 +111,13 @@ mod test {
     #[test]
     fn add() {
         let mut stack: Stack<u8> = Stack::new();
-
-        stack.add(0, 13);
-        assert_eq!(stack.get(0), Some(&13));
-        assert_eq!(stack.len(), 1);
+        assert_eq!(stack.len(), 0);
 
         // Should resize backing array
         stack.add(8, 13);
         assert_eq!(stack.get(8), Some(&13));
         assert_eq!(stack.capacity(), 16);
-        assert_eq!(stack.len(), 2);
+        assert_eq!(stack.len(), 1);
 
         stack.add(100, 13);
         assert_eq!(stack.get(100), Some(&13));

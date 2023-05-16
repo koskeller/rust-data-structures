@@ -2,26 +2,22 @@
 
 const DEFAULT_CAPACITY: usize = 4;
 
-pub struct Queue<T>
-where
-    T: Clone,
-{
+pub struct Queue<T> {
     buf: Vec<Option<T>>,
     start: usize,
     len: usize,
 }
 
-impl<T> Queue<T>
-where
-    T: Clone,
-{
+impl<T> Queue<T> {
     pub fn new() -> Self {
         Queue::with_capacity(DEFAULT_CAPACITY)
     }
 
     pub fn with_capacity(capacity: usize) -> Self {
+        let mut buf = Vec::new();
+        buf.resize_with(capacity, Default::default);
         Self {
-            buf: vec![None; capacity],
+            buf,
             start: 0,
             len: 0,
         }
@@ -60,7 +56,9 @@ where
     fn resize(&mut self) {
         self.buf.rotate_left(self.start);
         let new_capacity = std::cmp::max(self.capacity() * 2, 1);
-        let old = std::mem::replace(&mut self.buf, vec![None; new_capacity]);
+        let mut buf = Vec::new();
+        buf.resize_with(new_capacity, Default::default);
+        let mut old = std::mem::replace(&mut self.buf, buf);
         self.buf.splice(..old.len(), old);
         self.start = 0;
     }
