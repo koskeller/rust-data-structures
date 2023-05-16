@@ -23,17 +23,6 @@ impl<T> Queue<T> {
         }
     }
 
-    // Implementation with fixed size buffer.
-    // pub fn push(&mut self, value: T) {
-    //     let next = (self.start + self.len) % self.capacity();
-    //     self.buf[next] = Some(value);
-    //     if next == self.start {
-    //         self.start = (self.start + 1) % self.capacity();
-    //     } else {
-    //         self.len += 1;
-    //     }
-    // }
-
     pub fn push(&mut self, value: T) {
         if self.len >= self.capacity() {
             self.resize()
