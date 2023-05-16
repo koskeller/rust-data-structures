@@ -77,5 +77,11 @@ mod test {
         buf.push(4);
         buf.push(5); // <- should overwrite 1, making tail == 2
         assert_eq!(buf.pop(), Some(2));
+        assert_eq!(buf.pop(), Some(3));
+        assert_eq!(buf.pop(), Some(4));
+        assert_eq!(buf.pop(), Some(5));
+        assert_eq!(buf.pop(), None);
+        buf.push(1);
+        assert_eq!(buf.pop(), Some(1));
     }
 }
