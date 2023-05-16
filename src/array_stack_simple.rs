@@ -6,7 +6,7 @@ pub struct Stack<T>
 where
     T: Clone,
 {
-    elements: Vec<Option<T>>,
+    buf: Vec<Option<T>>,
     len: usize,
 }
 
@@ -20,7 +20,7 @@ where
 
     pub fn with_capacity(capacity: usize) -> Self {
         Self {
-            elements: vec![None; capacity],
+            buf: vec![None; capacity],
             len: 0,
         }
     }
@@ -30,10 +30,9 @@ where
             self.resize(i);
         }
 
-        let old = self.elements[i].take();
-        self.elements[i] = Some(value);
+        let old = self.buf[i].take();
+        self.buf[i] = Some(value);
         // We increase len only if we replace None element.
-        // If we replace existing element, we should not change len.
         if old.is_none() {
             self.len += 1;
         }
@@ -44,7 +43,7 @@ where
         if i >= self.capacity() {
             return None;
         }
-        match &self.elements[i] {
+        match &self.buf[i] {
             Some(v) => Some(&v),
             None => None,
         }
@@ -57,12 +56,12 @@ where
             self.resize(i);
         }
 
-        match self.elements[i] {
+        match self.buf[i] {
             Some(_) => {
                 self.shift_right(i);
-                self.elements[i] = Some(value);
+                self.buf[i] = Some(value);
             }
-            None => self.elements[i] = Some(value),
+            None => self.buf[i] = Some(value),
         }
         self.len += 1;
     }
@@ -72,7 +71,7 @@ where
             return None;
         }
         self.len -= 1;
-        self.elements[i].take()
+        self.buf[i].take()
     }
 
     fn resize(&mut self, n: usize) {
@@ -80,8 +79,8 @@ where
         while n >= new_size {
             new_size = std::cmp::max(new_size * 2, 1);
         }
-        let mut old = std::mem::replace(&mut self.elements, vec![None; new_size]);
-        self.elements.splice(..old.len(), old);
+        let mut old = std::mem::replace(&mut self.buf, vec![None; new_size]);
+        self.buf.splice(..old.len(), old);
     }
 
     fn shift_right(&mut self, mut i: usize) {
@@ -91,7 +90,7 @@ where
                 self.resize(i);
             }
 
-            std::mem::swap(&mut tmp, &mut self.elements[i]);
+            std::mem::swap(&mut tmp, &mut self.buf[i]);
             i += 1;
 
             if let None = tmp {
@@ -101,7 +100,7 @@ where
     }
 
     pub fn capacity(&self) -> usize {
-        self.elements.len()
+        self.buf.len()
     }
 
     pub fn len(&self) -> usize {

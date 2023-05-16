@@ -6,8 +6,8 @@ pub struct Queue<T>
 where
     T: Clone,
 {
-    elements: Vec<Option<T>>,
-    first: usize,
+    buf: Vec<Option<T>>,
+    start: usize,
     len: usize,
 }
 
@@ -21,18 +21,29 @@ where
 
     pub fn with_capacity(capacity: usize) -> Self {
         Self {
-            elements: vec![None; capacity],
-            first: 0,
+            buf: vec![None; capacity],
+            start: 0,
             len: 0,
         }
     }
+
+    // Implementation with fixed size buffer.
+    // pub fn push(&mut self, value: T) {
+    //     let next = (self.start + self.len) % self.capacity();
+    //     self.buf[next] = Some(value);
+    //     if next == self.start {
+    //         self.start = (self.start + 1) % self.capacity();
+    //     } else {
+    //         self.len += 1;
+    //     }
+    // }
 
     pub fn push(&mut self, value: T) {
         if self.len >= self.capacity() {
             self.resize()
         }
-        let i = (self.first + self.len) % self.capacity();
-        self.elements[i] = Some(value);
+        let next = (self.start + self.len) % self.capacity();
+        self.buf[next] = Some(value);
         self.len += 1;
     }
 
@@ -40,22 +51,22 @@ where
         if self.len == 0 {
             return None;
         }
-        let result = self.elements[self.first].take();
+        let result = self.buf[self.start].take();
         self.len -= 1;
-        self.first = (self.first + 1) % self.capacity();
+        self.start = (self.start + 1) % self.capacity();
         result
     }
 
     fn resize(&mut self) {
-        self.elements.rotate_left(self.first);
+        self.buf.rotate_left(self.start);
         let new_capacity = std::cmp::max(self.capacity() * 2, 1);
-        let old = std::mem::replace(&mut self.elements, vec![None; new_capacity]);
-        self.elements.splice(..old.len(), old);
-        self.first = 0;
+        let old = std::mem::replace(&mut self.buf, vec![None; new_capacity]);
+        self.buf.splice(..old.len(), old);
+        self.start = 0;
     }
 
     fn capacity(&self) -> usize {
-        self.elements.len()
+        self.buf.len()
     }
 }
 
