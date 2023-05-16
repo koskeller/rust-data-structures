@@ -7,7 +7,7 @@ where
     T: Clone,
 {
     elements: Vec<Option<T>>,
-    next: usize,
+    first: usize,
     len: usize,
 }
 
@@ -22,24 +22,17 @@ where
     pub fn with_capacity(capacity: usize) -> Self {
         Self {
             elements: vec![None; capacity],
-            next: 0,
+            first: 0,
             len: 0,
         }
     }
 
     pub fn push(&mut self, value: T) {
-        match self.elements[self.next] {
-            Some(_) => {
-                self.elements.rotate_left(self.next);
-                self.next = self.elements.len();
-                self.resize();
-                self.elements[self.next] = Some(value);
-            }
-            None => {
-                self.elements[self.next] = Some(value);
-                self.next = self.get_next();
-            }
+        if self.len >= self.capacity() {
+            self.resize()
         }
+        let i = (self.first + self.len) % self.capacity();
+        self.elements[i] = Some(value);
         self.len += 1;
     }
 
@@ -47,28 +40,18 @@ where
         if self.len == 0 {
             return None;
         }
-
-        match self.elements[self.next] {
-            Some(_) => {
-                self.len -= 1;
-                self.elements[self.next].take()
-            }
-            None => {
-                let index = (self.next + self.capacity() - self.len) % self.capacity();
-                self.len -= 1;
-                self.elements[index].take()
-            }
-        }
-    }
-
-    fn get_next(&self) -> usize {
-        (self.next + 1) % self.elements.len()
+        let result = self.elements[self.first].take();
+        self.len -= 1;
+        self.first = (self.first + 1) % self.capacity();
+        result
     }
 
     fn resize(&mut self) {
-        let new_capacity = std::cmp::max(self.elements.len() * 2, 1);
+        self.elements.rotate_left(self.first);
+        let new_capacity = std::cmp::max(self.capacity() * 2, 1);
         let old = std::mem::replace(&mut self.elements, vec![None; new_capacity]);
         self.elements.splice(..old.len(), old);
+        self.first = 0;
     }
 
     fn capacity(&self) -> usize {
