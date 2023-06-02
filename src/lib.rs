@@ -10,3 +10,5 @@ mod array_stack;
 mod rootish_array_stack;
 
 mod circular_buffer;
+
+mod hash_map;
