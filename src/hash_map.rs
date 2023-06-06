@@ -411,4 +411,21 @@ mod test {
             }
         }
     }
+
+    #[test]
+    fn entry() {
+        let mut hash_map = HashMap::new();
+
+        let entry = hash_map.entry("a");
+        entry.or_insert(1);
+        assert_eq!(hash_map.get("a"), Some(&1));
+
+        let entry = hash_map.entry("b");
+        entry.or_default();
+        assert_eq!(hash_map.get("b"), Some(&0));
+
+        let entry = hash_map.entry("c");
+        entry.or_insert_with(|| 1);
+        assert_eq!(hash_map.get("c"), Some(&1));
+    }
 }
