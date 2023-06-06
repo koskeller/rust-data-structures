@@ -92,6 +92,16 @@ where
     }
 
     /// An iterator visiting all key-value pairs in arbitrary order,
+    /// with owned values.
+    /// The iterator element type is `(&'a K, &'a mut V)`.
+    pub fn into_iter(self) -> IntoIter<K, V> {
+        IntoIter {
+            index: 0,
+            buckets: self.buckets,
+        }
+    }
+
+    /// An iterator visiting all key-value pairs in arbitrary order,
     /// with mutable references to the values.
     /// The iterator element type is `(&'a K, &'a mut V)`.
     pub fn iter_mut(&mut self) {
@@ -193,6 +203,46 @@ where
     }
 }
 
+pub struct IntoIter<K, V> {
+    index: usize,
+    buckets: Vec<Option<(K, V)>>,
+}
+
+impl<K, V> Iterator for IntoIter<K, V> {
+    type Item = (K, V);
+
+    fn next(&mut self) -> Option<Self::Item> {
+        while self.index < self.buckets.len() {
+            match self.buckets[self.index].take() {
+                Some(elt) => {
+                    self.index += 1;
+                    return Some(elt);
+                }
+                None => {
+                    self.index += 1;
+                    continue;
+                }
+            }
+        }
+        None
+    }
+}
+
+impl<K, V> IntoIterator for HashMap<K, V>
+where
+    K: Hash,
+{
+    type Item = (K, V);
+    type IntoIter = IntoIter<K, V>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        IntoIter {
+            index: 0,
+            buckets: self.buckets,
+        }
+    }
+}
+
 #[cfg(test)]
 mod test {
     use super::*;
@@ -203,12 +253,14 @@ mod test {
 
         // Make sure empty state is correct
         assert_eq!(hash_map.len(), 0);
+        assert_eq!(hash_map.capacity(), 0);
         assert_eq!(hash_map.get(1), None);
         assert_eq!(hash_map.remove(1), None);
 
         // Add element
         assert_eq!(hash_map.insert(1, 1), None);
         assert_eq!(hash_map.len(), 1);
+        assert_eq!(hash_map.capacity(), DEFAULT_CAPACITY);
         assert_eq!(hash_map.get(1), Some(&1));
 
         // Owerwrite
@@ -228,6 +280,14 @@ mod test {
     }
 
     #[test]
+    fn string() {
+        let mut hash_map = HashMap::new();
+
+        hash_map.insert("Hello", "world");
+        hash_map.insert(&"Hello", &"world");
+    }
+
+    #[test]
     fn iter() {
         let mut hash_map = HashMap::new();
 
@@ -238,6 +298,24 @@ mod test {
         assert_eq!(hash_map.iter().count(), 3);
 
         for (&k, &v) in &hash_map {
+            match k {
+                "a" => assert_eq!(v, 1),
+                "b" => assert_eq!(v, 2),
+                "c" => assert_eq!(v, 3),
+                _ => unreachable!(),
+            }
+        }
+    }
+
+    #[test]
+    fn into_iter() {
+        let mut hash_map = HashMap::new();
+
+        hash_map.insert("a", 1);
+        hash_map.insert("b", 2);
+        hash_map.insert("c", 3);
+
+        for (k, v) in hash_map {
             match k {
                 "a" => assert_eq!(v, 1),
                 "b" => assert_eq!(v, 2),
