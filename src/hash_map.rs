@@ -70,7 +70,7 @@ where
         self.buckets[index].as_ref().map(|elt| &elt.1)
     }
 
-    /// Removes a key from the map, returning the value at the key if the key
+    /// Removes a key from themap, returning the value at the key if the key
     /// was previously in the map.
     pub fn remove(&mut self, k: K) -> Option<(K, V)> {
         let index = self.find_or_find_insert_slot(&k)?;
@@ -101,11 +101,33 @@ where
         }
     }
 
-    /// An iterator visiting all key-value pairs in arbitrary order,
-    /// with mutable references to the values.
-    /// The iterator element type is `(&'a K, &'a mut V)`.
-    pub fn iter_mut(&mut self) {
-        todo!()
+    /// Returns `true` if the map contains a value for the specified key.
+    pub fn contains_key(&self, k: K) -> bool {
+        self.get(k).is_some()
+    }
+
+    /// Returns `true` if the map contains no elements.
+    pub fn is_empty(&self) -> bool {
+        self.len() == 0
+    }
+
+    /// Gets the given key's corresponding entry in the map for in-place manipulation.
+    pub fn entry<'a>(&'a mut self, k: K) -> Entry<'a, K, V> {
+        // Grow underlying Vec if length is at 60% of capacity.
+        let threshold = self.buckets.len() * 6 / 10;
+        if self.buckets.is_empty() || self.len() >= threshold {
+            self.grow()
+        }
+
+        let index = self.find_or_find_insert_slot(&k).unwrap();
+        match self.buckets[index] {
+            Some(ref mut elt) => Entry::Occupied(OccupiedEntry { index, map: self }),
+            None => Entry::Vacant(VacantEntry {
+                key: k,
+                index,
+                map: self,
+            }),
+        }
     }
 
     fn grow(&mut self) {
@@ -160,6 +182,71 @@ where
                 None => return Some(index),
             }
         }
+    }
+}
+
+pub struct OccupiedEntry<'a, K, V>
+where
+    K: Hash,
+{
+    index: usize,
+    map: &'a mut HashMap<K, V>,
+}
+
+pub struct VacantEntry<'a, K, V>
+where
+    K: Hash,
+{
+    key: K,
+    index: usize,
+    map: &'a mut HashMap<K, V>,
+}
+
+impl<'a, K, V> VacantEntry<'a, K, V>
+where
+    K: Hash,
+{
+    pub fn insert(self, v: V) -> &'a mut V {
+        self.map.buckets[self.index].replace((self.key, v));
+        self.map.len += 1;
+        &mut self.map.buckets[self.index].as_mut().unwrap().1
+    }
+}
+
+pub enum Entry<'a, K, V>
+where
+    K: Hash,
+{
+    Occupied(OccupiedEntry<'a, K, V>),
+    Vacant(VacantEntry<'a, K, V>),
+}
+
+impl<'a, K, V> Entry<'a, K, V>
+where
+    K: Hash,
+{
+    pub fn or_insert(self, value: V) -> &'a mut V {
+        match self {
+            Entry::Occupied(e) => &mut e.map.buckets[e.index].as_mut().unwrap().1,
+            Entry::Vacant(e) => e.insert(value),
+        }
+    }
+
+    pub fn or_insert_with<F>(self, maker: F) -> &'a mut V
+    where
+        F: FnOnce() -> V,
+    {
+        match self {
+            Entry::Occupied(e) => &mut e.map.buckets[e.index].as_mut().unwrap().1,
+            Entry::Vacant(e) => e.insert(maker()),
+        }
+    }
+
+    pub fn or_default(self) -> &'a mut V
+    where
+        V: Default,
+    {
+        self.or_insert_with(Default::default)
     }
 }
 
