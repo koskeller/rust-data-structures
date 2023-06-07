@@ -115,6 +115,60 @@ where
 
         result
     }
+
+    pub fn traverse_inorder(&self) -> Vec<T> {
+        if self.root.is_none() {
+            return Vec::new();
+        }
+        let mut result = Vec::new();
+        if let Some(ref node) = self.root {
+            Tree::traverse_inorder_recursive(&mut result, node);
+        }
+        result
+    }
+
+    pub fn traverse_inorder_recursive(values: &mut Vec<T>, node: &Box<Node<T>>) {
+        // For preorder traversal, uncomment:
+        // values.push(node.value.clone());
+
+        if let Some(ref node) = node.left {
+            Tree::traverse_inorder_recursive(values, &node);
+        }
+
+        // For inorder traversal, uncomment:
+        values.push(node.value.clone());
+
+        if let Some(ref node) = node.right {
+            Tree::traverse_inorder_recursive(values, &node);
+        }
+
+        // For post order traversal, uncomment:
+        // values.push(node.value.clone());
+    }
+
+    pub fn traverse_inorder_iterative(&self) -> Vec<T> {
+        if self.root.is_none() {
+            return Vec::new();
+        }
+
+        let mut result = Vec::new();
+        let mut queue = Vec::new();
+        let mut current = self.root.as_ref();
+
+        while !queue.is_empty() || current.is_some() {
+            while let Some(node) = current {
+                queue.push(node);
+                current = node.left.as_ref();
+            }
+
+            if let Some(node) = queue.pop() {
+                result.push(node.value.clone());
+                current = node.right.as_ref();
+            }
+        }
+
+        result
+    }
 }
 
 #[cfg(test)]
@@ -122,12 +176,35 @@ mod test {
     use super::*;
 
     #[test]
-    fn traverse() {
+    fn traverse_level_order() {
         let mut tree = Tree::new();
         let nodes = vec![8, 3, 10, 1, 6, 14, 4, 7, 13];
         for n in nodes.clone() {
             tree.insert(n);
         }
         assert_eq!(tree.traverse_level_order(), nodes);
+    }
+
+    #[test]
+    fn traverse_inorder() {
+        let mut tree = Tree::new();
+        let nodes = vec![8, 3, 10, 1, 6, 14, 4, 7, 13];
+        for n in nodes {
+            tree.insert(n);
+        }
+        assert_eq!(tree.traverse_inorder(), vec![1, 3, 4, 6, 7, 8, 10, 13, 14]);
+    }
+
+    #[test]
+    fn traverse_inorder_iterative() {
+        let mut tree = Tree::new();
+        let nodes = vec![8, 3, 10, 1, 6, 14, 4, 7, 13];
+        for n in nodes {
+            tree.insert(n);
+        }
+        assert_eq!(
+            tree.traverse_inorder_iterative(),
+            vec![1, 3, 4, 6, 7, 8, 10, 13, 14]
+        );
     }
 }
