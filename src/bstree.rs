@@ -1,5 +1,7 @@
 #![allow(unused)]
 
+use std::collections::VecDeque;
+
 pub struct Tree<T>
 where
     // TODO: remove Clone
@@ -83,5 +85,49 @@ where
                 }
             }
         }
+    }
+
+    pub fn traverse_level_order(&self) -> Vec<T> {
+        if self.root.is_none() {
+            return Vec::new();
+        }
+
+        let mut result = Vec::new();
+        let mut deque: VecDeque<&Box<Node<T>>> = VecDeque::new();
+        let root = self.root.as_ref().expect("checked by root.is_none()");
+        result.push(root.value.clone());
+        deque.push_back(root);
+
+        while !deque.is_empty() {
+            for _ in 0..deque.len() {
+                if let Some(node) = deque.pop_front() {
+                    if let Some(ref node) = node.left {
+                        result.push(node.value.clone());
+                        deque.push_back(node);
+                    }
+                    if let Some(ref node) = node.right {
+                        result.push(node.value.clone());
+                        deque.push_back(node);
+                    }
+                }
+            }
+        }
+
+        result
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    #[test]
+    fn traverse() {
+        let mut tree = Tree::new();
+        let nodes = vec![8, 3, 10, 1, 6, 14, 4, 7, 13];
+        for n in nodes.clone() {
+            tree.insert(n);
+        }
+        assert_eq!(tree.traverse_level_order(), nodes);
     }
 }
