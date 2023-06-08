@@ -85,28 +85,6 @@ where
         }
     }
 
-    pub fn traverse_depth_first(&self) -> Vec<T> {
-        if self.root.is_none() {
-            return Vec::new();
-        }
-
-        let mut result = Vec::new();
-        let mut stack = Vec::new();
-        stack.push(self.root.as_ref().expect("guarded by root.is_none()"));
-
-        while let Some(node) = stack.pop() {
-            result.push(node.value.clone());
-            if let Some(ref node) = node.right {
-                stack.push(node);
-            }
-            if let Some(ref node) = node.left {
-                stack.push(node);
-            }
-        }
-
-        result
-    }
-
     pub fn traverse_level_order(&self) -> Vec<T> {
         if self.root.is_none() {
             return Vec::new();
@@ -184,6 +162,28 @@ where
             if let Some(node) = stack.pop() {
                 result.push(node.value.clone());
                 current = node.right.as_ref();
+            }
+        }
+
+        result
+    }
+
+    pub fn traverse_pre_order_iteratively(&self) -> Vec<T> {
+        if self.root.is_none() {
+            return Vec::new();
+        }
+
+        let mut result = Vec::new();
+        let mut stack = Vec::new();
+        stack.push(self.root.as_ref().expect("guarded by root.is_none()"));
+
+        while let Some(node) = stack.pop() {
+            result.push(node.value.clone());
+            if let Some(ref node) = node.right {
+                stack.push(node);
+            }
+            if let Some(ref node) = node.left {
+                stack.push(node);
             }
         }
 
@@ -281,14 +281,14 @@ mod test {
     }
 
     #[test]
-    fn traverse_depth_first() {
+    fn traverse_pre_order() {
         let mut tree = Tree::new();
         let nodes = vec![8, 3, 10, 1, 6, 14, 4, 7, 13];
         for n in nodes {
             tree.insert(n);
         }
         assert_eq!(
-            tree.traverse_depth_first(),
+            tree.traverse_pre_order_iteratively(),
             vec![8, 3, 1, 6, 4, 7, 10, 14, 13]
         );
     }
