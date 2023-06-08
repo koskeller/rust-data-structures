@@ -38,6 +38,29 @@ where
         Self { root: None }
     }
 
+    pub fn get(&self, value: T) -> Option<&T> {
+        match self.root {
+            Some(ref node) => Self::find(value, node).map(|node| &node.value),
+            None => None,
+        }
+    }
+
+    fn find(value: T, node: &Box<Node<T>>) -> Option<&Box<Node<T>>> {
+        if node.value == value {
+            return Some(node);
+        } else if node.value > value {
+            match node.left {
+                Some(ref n) => Self::find(value, n),
+                None => None,
+            }
+        } else {
+            match node.right {
+                Some(ref n) => Self::find(value, n),
+                None => None,
+            }
+        }
+    }
+
     pub fn insert(&mut self, value: T) {
         match self.root {
             Some(ref mut node) => Tree::insert_recursive_fn(node, value),
@@ -67,18 +90,18 @@ where
 
         let root = self.root.as_mut().expect("checked by root.is_none()");
 
-        let mut q: Vec<&mut Box<Node<T>>> = Vec::new();
-        q.push(root);
+        let mut stack: Vec<&mut Box<Node<T>>> = Vec::new();
+        stack.push(root);
 
-        while let Some(node) = q.pop() {
+        while let Some(node) = stack.pop() {
             if value < node.value {
                 match node.left {
-                    Some(ref mut n) => q.push(n),
+                    Some(ref mut n) => stack.push(n),
                     None => node.left = Node::new(value.clone()).into(),
                 }
             } else if value > node.value {
                 match node.right {
-                    Some(ref mut n) => q.push(n),
+                    Some(ref mut n) => stack.push(n),
                     None => node.right = Node::new(value.clone()).into(),
                 }
             }
@@ -244,23 +267,25 @@ where
 mod test {
     use super::*;
 
-    #[test]
-    fn traverse_level_order() {
+    fn mock_tree<T: Ord + Clone>(nodes: Vec<T>) -> Tree<T> {
         let mut tree = Tree::new();
-        let nodes = vec![8, 3, 10, 1, 6, 14, 4, 7, 13];
-        for n in nodes.clone() {
+        for n in nodes {
             tree.insert(n);
         }
+        tree
+    }
+
+    #[test]
+    fn traverse_level_order() {
+        let nodes = vec![8, 3, 10, 1, 6, 14, 4, 7, 13];
+        let tree = mock_tree(nodes.clone());
         assert_eq!(tree.traverse_level_order(), nodes);
     }
 
     #[test]
     fn traverse_inorder_recursive() {
-        let mut tree = Tree::new();
         let nodes = vec![8, 3, 10, 1, 6, 14, 4, 7, 13];
-        for n in nodes {
-            tree.insert(n);
-        }
+        let tree = mock_tree(nodes);
         assert_eq!(
             tree.traverse_inorder_recursive(),
             vec![1, 3, 4, 6, 7, 8, 10, 13, 14]
@@ -269,11 +294,8 @@ mod test {
 
     #[test]
     fn traverse_inorder_iterative() {
-        let mut tree = Tree::new();
         let nodes = vec![8, 3, 10, 1, 6, 14, 4, 7, 13];
-        for n in nodes {
-            tree.insert(n);
-        }
+        let tree = mock_tree(nodes);
         assert_eq!(
             tree.traverse_inorder_iterative(),
             vec![1, 3, 4, 6, 7, 8, 10, 13, 14]
@@ -282,11 +304,8 @@ mod test {
 
     #[test]
     fn traverse_pre_order() {
-        let mut tree = Tree::new();
         let nodes = vec![8, 3, 10, 1, 6, 14, 4, 7, 13];
-        for n in nodes {
-            tree.insert(n);
-        }
+        let tree = mock_tree(nodes);
         assert_eq!(
             tree.traverse_pre_order_iteratively(),
             vec![8, 3, 1, 6, 4, 7, 10, 14, 13]
@@ -295,12 +314,8 @@ mod test {
 
     #[test]
     fn iter() {
-        let mut tree = Tree::new();
-        let nodes: Vec<i32> = vec![8, 3, 10, 1, 6, 14, 4, 7, 13];
-        for n in nodes {
-            tree.insert(n);
-        }
-
+        let nodes = vec![8, 3, 10, 1, 6, 14, 4, 7, 13];
+        let tree = mock_tree(nodes);
         let nums = vec![1, 3, 4, 6, 7, 8, 10, 13, 14];
         let want: Vec<&i32> = nums.iter().collect();
         assert_eq!(tree.iter().collect::<Vec<&i32>>(), want);
@@ -308,11 +323,8 @@ mod test {
 
     #[test]
     fn into_iter() {
-        let mut tree = Tree::new();
-        let nodes: Vec<i32> = vec![8, 3, 10, 1, 6, 14, 4, 7, 13];
-        for n in nodes {
-            tree.insert(n);
-        }
+        let nodes = vec![8, 3, 10, 1, 6, 14, 4, 7, 13];
+        let tree = mock_tree(nodes);
 
         let mut got = Vec::new();
         for n in &tree {
@@ -322,5 +334,15 @@ mod test {
         let nums = vec![1, 3, 4, 6, 7, 8, 10, 13, 14];
         let want: Vec<&i32> = nums.iter().collect();
         assert_eq!(got, want);
+    }
+
+    #[test]
+    fn find() {
+        let nodes = vec![8, 3, 10, 1, 6, 14, 4, 7, 13];
+        let tree = mock_tree(nodes);
+        assert!(tree.get(8).is_some());
+        assert!(tree.get(13).is_some());
+        assert!(tree.get(0).is_none());
+        assert!(tree.get(99).is_none());
     }
 }
