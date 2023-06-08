@@ -38,7 +38,7 @@ where
         Self { root: None }
     }
 
-    pub fn insert_recursive(&mut self, value: T) {
+    pub fn insert(&mut self, value: T) {
         match self.root {
             Some(ref mut node) => Tree::insert_recursive_fn(node, value),
             None => self.root = Node::new(value).into(),
@@ -83,6 +83,28 @@ where
                 }
             }
         }
+    }
+
+    pub fn traverse_depth_first(&self) -> Vec<T> {
+        if self.root.is_none() {
+            return Vec::new();
+        }
+
+        let mut result = Vec::new();
+        let mut queue = Vec::new();
+        queue.push(self.root.as_ref().expect("guarded by root.is_none()"));
+
+        while let Some(node) = queue.pop() {
+            result.push(node.value.clone());
+            if let Some(ref node) = node.right {
+                queue.push(node);
+            }
+            if let Some(ref node) = node.left {
+                queue.push(node);
+            }
+        }
+
+        result
     }
 
     pub fn traverse_level_order(&self) -> Vec<T> {
@@ -227,7 +249,7 @@ mod test {
         let mut tree = Tree::new();
         let nodes = vec![8, 3, 10, 1, 6, 14, 4, 7, 13];
         for n in nodes.clone() {
-            tree.insert_recursive(n);
+            tree.insert(n);
         }
         assert_eq!(tree.traverse_level_order(), nodes);
     }
@@ -237,7 +259,7 @@ mod test {
         let mut tree = Tree::new();
         let nodes = vec![8, 3, 10, 1, 6, 14, 4, 7, 13];
         for n in nodes {
-            tree.insert_recursive(n);
+            tree.insert(n);
         }
         assert_eq!(
             tree.traverse_inorder_recursive(),
@@ -250,7 +272,7 @@ mod test {
         let mut tree = Tree::new();
         let nodes = vec![8, 3, 10, 1, 6, 14, 4, 7, 13];
         for n in nodes {
-            tree.insert_recursive(n);
+            tree.insert(n);
         }
         assert_eq!(
             tree.traverse_inorder_iterative(),
@@ -259,11 +281,24 @@ mod test {
     }
 
     #[test]
+    fn traverse_depth_first() {
+        let mut tree = Tree::new();
+        let nodes = vec![8, 3, 10, 1, 6, 14, 4, 7, 13];
+        for n in nodes {
+            tree.insert(n);
+        }
+        assert_eq!(
+            tree.traverse_depth_first(),
+            vec![8, 3, 1, 6, 4, 7, 10, 14, 13]
+        );
+    }
+
+    #[test]
     fn iter() {
         let mut tree = Tree::new();
         let nodes: Vec<i32> = vec![8, 3, 10, 1, 6, 14, 4, 7, 13];
         for n in nodes {
-            tree.insert_recursive(n);
+            tree.insert(n);
         }
 
         let nums = vec![1, 3, 4, 6, 7, 8, 10, 13, 14];
@@ -276,7 +311,7 @@ mod test {
         let mut tree = Tree::new();
         let nodes: Vec<i32> = vec![8, 3, 10, 1, 6, 14, 4, 7, 13];
         for n in nodes {
-            tree.insert_recursive(n);
+            tree.insert(n);
         }
 
         let mut got = Vec::new();
