@@ -1,10 +1,8 @@
 #![allow(unused)]
-
 use std::collections::VecDeque;
 
 pub struct Tree<T>
 where
-    // TODO: remove Clone
     T: Ord + Clone,
 {
     root: Option<Box<Node<T>>>,
@@ -40,22 +38,22 @@ where
         Self { root: None }
     }
 
-    pub fn insert(&mut self, value: T) {
+    pub fn insert_recursive(&mut self, value: T) {
         match self.root {
-            Some(ref mut node) => Tree::insert_recursive(node, value),
+            Some(ref mut node) => Tree::insert_recursive_fn(node, value),
             None => self.root = Node::new(value).into(),
         }
     }
 
-    pub fn insert_recursive(node: &mut Box<Node<T>>, value: T) {
+    fn insert_recursive_fn(node: &mut Box<Node<T>>, value: T) {
         if value < node.value {
             match node.left {
-                Some(ref mut child) => Tree::insert_recursive(child, value),
+                Some(ref mut child) => Tree::insert_recursive_fn(child, value),
                 None => node.left = Node::new(value).into(),
             }
         } else if value > node.value {
             match node.right {
-                Some(ref mut child) => Tree::insert_recursive(child, value),
+                Some(ref mut child) => Tree::insert_recursive_fn(child, value),
                 None => node.right = Node::new(value).into(),
             }
         }
@@ -116,30 +114,30 @@ where
         result
     }
 
-    pub fn traverse_inorder(&self) -> Vec<T> {
+    pub fn traverse_inorder_recursive(&self) -> Vec<T> {
         if self.root.is_none() {
             return Vec::new();
         }
         let mut result = Vec::new();
         if let Some(ref node) = self.root {
-            Tree::traverse_inorder_recursive(&mut result, node);
+            Tree::traverse_recursive_fn(&mut result, node);
         }
         result
     }
 
-    pub fn traverse_inorder_recursive(values: &mut Vec<T>, node: &Box<Node<T>>) {
+    fn traverse_recursive_fn(values: &mut Vec<T>, node: &Box<Node<T>>) {
         // For preorder traversal, uncomment:
         // values.push(node.value.clone());
 
         if let Some(ref node) = node.left {
-            Tree::traverse_inorder_recursive(values, &node);
+            Tree::traverse_recursive_fn(values, &node);
         }
 
         // For inorder traversal, uncomment:
         values.push(node.value.clone());
 
         if let Some(ref node) = node.right {
-            Tree::traverse_inorder_recursive(values, &node);
+            Tree::traverse_recursive_fn(values, &node);
         }
 
         // For post order traversal, uncomment:
@@ -169,6 +167,55 @@ where
 
         result
     }
+
+    pub fn iter(&self) -> Iter<T> {
+        let current = self.root.as_ref().map(|r| r);
+        Iter {
+            queue: Vec::new(),
+            current,
+        }
+    }
+}
+
+pub struct Iter<'a, T> {
+    queue: Vec<&'a Box<Node<T>>>,
+    current: Option<&'a Box<Node<T>>>,
+}
+
+impl<'a, T> Iterator for Iter<'a, T> {
+    type Item = &'a T;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        match (self.current, &mut self.queue) {
+            (None, q) if q.is_empty() => None,
+            (None, q) => {
+                let node = q.pop().expect("guarded by q.is_empty() before");
+                self.current = node.right.as_ref();
+                Some(&node.value)
+            }
+            (Some(node), q) => {
+                self.queue.push(node);
+                self.current = node.left.as_ref();
+                self.next()
+            }
+        }
+    }
+}
+
+impl<'a, T> IntoIterator for &'a Tree<T>
+where
+    T: Ord + Clone,
+{
+    type Item = &'a T;
+    type IntoIter = Iter<'a, T>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        let current = self.root.as_ref();
+        Iter {
+            queue: Vec::new(),
+            current,
+        }
+    }
 }
 
 #[cfg(test)]
@@ -180,19 +227,22 @@ mod test {
         let mut tree = Tree::new();
         let nodes = vec![8, 3, 10, 1, 6, 14, 4, 7, 13];
         for n in nodes.clone() {
-            tree.insert(n);
+            tree.insert_recursive(n);
         }
         assert_eq!(tree.traverse_level_order(), nodes);
     }
 
     #[test]
-    fn traverse_inorder() {
+    fn traverse_inorder_recursive() {
         let mut tree = Tree::new();
         let nodes = vec![8, 3, 10, 1, 6, 14, 4, 7, 13];
         for n in nodes {
-            tree.insert(n);
+            tree.insert_recursive(n);
         }
-        assert_eq!(tree.traverse_inorder(), vec![1, 3, 4, 6, 7, 8, 10, 13, 14]);
+        assert_eq!(
+            tree.traverse_inorder_recursive(),
+            vec![1, 3, 4, 6, 7, 8, 10, 13, 14]
+        );
     }
 
     #[test]
@@ -200,11 +250,42 @@ mod test {
         let mut tree = Tree::new();
         let nodes = vec![8, 3, 10, 1, 6, 14, 4, 7, 13];
         for n in nodes {
-            tree.insert(n);
+            tree.insert_recursive(n);
         }
         assert_eq!(
             tree.traverse_inorder_iterative(),
             vec![1, 3, 4, 6, 7, 8, 10, 13, 14]
         );
+    }
+
+    #[test]
+    fn iter() {
+        let mut tree = Tree::new();
+        let nodes: Vec<i32> = vec![8, 3, 10, 1, 6, 14, 4, 7, 13];
+        for n in nodes {
+            tree.insert_recursive(n);
+        }
+
+        let nums = vec![1, 3, 4, 6, 7, 8, 10, 13, 14];
+        let want: Vec<&i32> = nums.iter().collect();
+        assert_eq!(tree.iter().collect::<Vec<&i32>>(), want);
+    }
+
+    #[test]
+    fn into_iter() {
+        let mut tree = Tree::new();
+        let nodes: Vec<i32> = vec![8, 3, 10, 1, 6, 14, 4, 7, 13];
+        for n in nodes {
+            tree.insert_recursive(n);
+        }
+
+        let mut got = Vec::new();
+        for n in &tree {
+            got.push(n);
+        }
+
+        let nums = vec![1, 3, 4, 6, 7, 8, 10, 13, 14];
+        let want: Vec<&i32> = nums.iter().collect();
+        assert_eq!(got, want);
     }
 }
