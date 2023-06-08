@@ -91,16 +91,16 @@ where
         }
 
         let mut result = Vec::new();
-        let mut queue = Vec::new();
-        queue.push(self.root.as_ref().expect("guarded by root.is_none()"));
+        let mut stack = Vec::new();
+        stack.push(self.root.as_ref().expect("guarded by root.is_none()"));
 
-        while let Some(node) = queue.pop() {
+        while let Some(node) = stack.pop() {
             result.push(node.value.clone());
             if let Some(ref node) = node.right {
-                queue.push(node);
+                stack.push(node);
             }
             if let Some(ref node) = node.left {
-                queue.push(node);
+                stack.push(node);
             }
         }
 
@@ -172,16 +172,16 @@ where
         }
 
         let mut result = Vec::new();
-        let mut queue = Vec::new();
+        let mut stack = Vec::new();
         let mut current = self.root.as_ref();
 
-        while !queue.is_empty() || current.is_some() {
+        while !stack.is_empty() || current.is_some() {
             while let Some(node) = current {
-                queue.push(node);
+                stack.push(node);
                 current = node.left.as_ref();
             }
 
-            if let Some(node) = queue.pop() {
+            if let Some(node) = stack.pop() {
                 result.push(node.value.clone());
                 current = node.right.as_ref();
             }
@@ -193,14 +193,14 @@ where
     pub fn iter(&self) -> Iter<T> {
         let current = self.root.as_ref().map(|r| r);
         Iter {
-            queue: Vec::new(),
+            stack: Vec::new(),
             current,
         }
     }
 }
 
 pub struct Iter<'a, T> {
-    queue: Vec<&'a Box<Node<T>>>,
+    stack: Vec<&'a Box<Node<T>>>,
     current: Option<&'a Box<Node<T>>>,
 }
 
@@ -208,7 +208,7 @@ impl<'a, T> Iterator for Iter<'a, T> {
     type Item = &'a T;
 
     fn next(&mut self) -> Option<Self::Item> {
-        match (self.current, &mut self.queue) {
+        match (self.current, &mut self.stack) {
             (None, q) if q.is_empty() => None,
             (None, q) => {
                 let node = q.pop().expect("guarded by q.is_empty() before");
@@ -216,7 +216,7 @@ impl<'a, T> Iterator for Iter<'a, T> {
                 Some(&node.value)
             }
             (Some(node), q) => {
-                self.queue.push(node);
+                self.stack.push(node);
                 self.current = node.left.as_ref();
                 self.next()
             }
@@ -234,7 +234,7 @@ where
     fn into_iter(self) -> Self::IntoIter {
         let current = self.root.as_ref();
         Iter {
-            queue: Vec::new(),
+            stack: Vec::new(),
             current,
         }
     }
