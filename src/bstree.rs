@@ -8,6 +8,7 @@ where
     root: Option<Box<Node<T>>>,
 }
 
+#[derive(Debug)]
 pub struct Node<T> {
     value: T,
     left: Option<Box<Node<T>>>,
@@ -61,23 +62,74 @@ where
         }
     }
 
+    // This code uses workaround for rust borrow checker issue discussed here:
+    // https://github.com/rust-lang/rust/issues/54663
+    fn find_parent(&mut self, value: T) -> Option<&mut Box<Node<T>>> {
+        if self.root.is_none() {
+            return None;
+        }
+
+        let root = self.root.as_mut().expect("checked by root.is_none()");
+
+        let mut stack: Vec<&mut Box<Node<T>>> = Vec::new();
+        stack.push(root);
+
+        while let Some(node) = stack.pop() {
+            if value < node.value {
+                if node.left.is_some() {
+                    if value == node.left.as_ref().unwrap().value {
+                        return Some(node);
+                    } else {
+                        stack.push(node.left.as_mut().unwrap())
+                    }
+                } else {
+                    return None;
+                }
+            } else if value > node.value {
+                if node.right.is_some() {
+                    if value == node.right.as_ref().unwrap().value {
+                        return Some(node);
+                    } else {
+                        stack.push(node.right.as_mut().unwrap())
+                    }
+                } else {
+                    return None;
+                }
+            }
+        }
+
+        None
+    }
+
     pub fn insert(&mut self, value: T) {
+        let node = Node::new(value).into();
         match self.root {
-            Some(ref mut node) => Tree::insert_recursive_fn(node, value),
-            None => self.root = Node::new(value).into(),
+            Some(ref mut current) => Tree::insert_recursive(current, node),
+            None => self.root = Some(node),
         }
     }
 
-    fn insert_recursive_fn(node: &mut Box<Node<T>>, value: T) {
-        if value < node.value {
-            match node.left {
-                Some(ref mut child) => Tree::insert_recursive_fn(child, value),
-                None => node.left = Node::new(value).into(),
+    // pub fn delete(&mut self, value: T) -> Option<Box<Node<T>>> {
+    //     if let Some(ref mut node) = self.root {
+    //         if let Some(ref mut parent) = Self::find_parent(value, node) {
+    //             if let Some(ref mut target) = parent.left {
+    //             } else if let Some(ref mut target) = parent.right {
+    //             }
+    //         }
+    //     }
+    //     return None;
+    // }
+
+    fn insert_recursive(current: &mut Box<Node<T>>, node: Box<Node<T>>) {
+        if node.value < current.value {
+            match current.left {
+                Some(ref mut child) => Tree::insert_recursive(child, node),
+                None => current.left = Some(node),
             }
-        } else if value > node.value {
-            match node.right {
-                Some(ref mut child) => Tree::insert_recursive_fn(child, value),
-                None => node.right = Node::new(value).into(),
+        } else if node.value > current.value {
+            match current.right {
+                Some(ref mut child) => Tree::insert_recursive(child, node),
+                None => current.right = Some(node),
             }
         }
     }
@@ -344,5 +396,21 @@ mod test {
         assert!(tree.get(13).is_some());
         assert!(tree.get(0).is_none());
         assert!(tree.get(99).is_none());
+    }
+
+    #[test]
+    fn find_parent() {
+        let nodes = vec![8, 3, 10, 1, 6, 14, 4, 7, 13];
+        let mut tree = mock_tree(nodes);
+
+        assert!(tree.find_parent(8).is_none());
+        assert_eq!(tree.find_parent(3).unwrap().value, 8);
+        assert_eq!(tree.find_parent(10).unwrap().value, 8);
+        assert_eq!(tree.find_parent(1).unwrap().value, 3);
+        assert_eq!(tree.find_parent(6).unwrap().value, 3);
+        assert_eq!(tree.find_parent(14).unwrap().value, 10);
+        assert_eq!(tree.find_parent(4).unwrap().value, 6);
+        assert_eq!(tree.find_parent(7).unwrap().value, 6);
+        assert_eq!(tree.find_parent(13).unwrap().value, 14);
     }
 }

@@ -70,9 +70,10 @@ where
         self.buckets[index].as_ref().map(|elt| &elt.1)
     }
 
-    /// Removes a key from themap, returning the value at the key if the key
+    /// Removes a key from the map, returning the value at the key if the key
     /// was previously in the map.
     pub fn remove(&mut self, k: K) -> Option<(K, V)> {
+        // TODO move collided elements after delete
         let index = self.find_or_find_insert_slot(&k)?;
         if let Some(elt) = self.buckets[index].take() {
             self.len -= 1;
@@ -356,6 +357,7 @@ mod test {
 
         // Delete
         assert_eq!(hash_map.remove(1), Some((1, 2)));
+        assert_eq!(hash_map.remove(1), None);
         assert_eq!(hash_map.get(1), None);
 
         // Add multiple elements
