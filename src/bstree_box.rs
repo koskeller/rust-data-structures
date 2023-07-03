@@ -1,7 +1,7 @@
 #![allow(unused)]
 use std::collections::VecDeque;
 
-pub struct Tree<T>
+pub struct BSTree<T>
 where
     T: Ord + Clone,
 {
@@ -35,7 +35,7 @@ impl<T> From<Node<T>> for Option<Box<Node<T>>> {
     }
 }
 
-impl<T> Tree<T>
+impl<T> BSTree<T>
 where
     T: Ord + Clone,
 {
@@ -109,7 +109,7 @@ where
     pub fn insert(&mut self, value: T) {
         let node = Node::new(value).into();
         match self.root {
-            Some(ref mut current) => Tree::insert_recursive(current, node),
+            Some(ref mut current) => BSTree::insert_recursive(current, node),
             None => self.root = Some(node),
         }
     }
@@ -129,7 +129,7 @@ where
                     self.root = right;
                 } else {
                     self.root = right;
-                    Tree::insert_recursive(self.root.as_mut().unwrap(), left.unwrap());
+                    BSTree::insert_recursive(self.root.as_mut().unwrap(), left.unwrap());
                 }
                 return Some(root.value);
             }
@@ -149,7 +149,7 @@ where
                         parent.left = right;
                     } else if left.is_some() && right.is_some() {
                         parent.left = right;
-                        Tree::insert_recursive(parent.left.as_mut().unwrap(), left.unwrap());
+                        BSTree::insert_recursive(parent.left.as_mut().unwrap(), left.unwrap());
                     }
                     return Some(target.value);
                 }
@@ -167,7 +167,7 @@ where
                         parent.right = right;
                     } else if left.is_some() && right.is_some() {
                         parent.right = right;
-                        Tree::insert_recursive(parent.right.as_mut().unwrap(), left.unwrap());
+                        BSTree::insert_recursive(parent.right.as_mut().unwrap(), left.unwrap());
                     }
                     return Some(target.value);
                 }
@@ -180,12 +180,12 @@ where
     fn insert_recursive(current: &mut Box<Node<T>>, node: Box<Node<T>>) {
         if node.value < current.value {
             match current.left {
-                Some(ref mut child) => Tree::insert_recursive(child, node),
+                Some(ref mut child) => BSTree::insert_recursive(child, node),
                 None => current.left = Some(node),
             }
         } else if node.value > current.value {
             match current.right {
-                Some(ref mut child) => Tree::insert_recursive(child, node),
+                Some(ref mut child) => BSTree::insert_recursive(child, node),
                 None => current.right = Some(node),
             }
         }
@@ -252,7 +252,7 @@ where
         }
         let mut result = Vec::new();
         if let Some(ref node) = self.root {
-            Tree::traverse_recursive_fn(&mut result, node);
+            BSTree::traverse_recursive_fn(&mut result, node);
         }
         result
     }
@@ -262,14 +262,14 @@ where
         // values.push(node.value.clone());
 
         if let Some(ref node) = node.left {
-            Tree::traverse_recursive_fn(values, &node);
+            BSTree::traverse_recursive_fn(values, &node);
         }
 
         // For inorder traversal, uncomment:
         values.push(node.value.clone());
 
         if let Some(ref node) = node.right {
-            Tree::traverse_recursive_fn(values, &node);
+            BSTree::traverse_recursive_fn(values, &node);
         }
 
         // For post order traversal, uncomment:
@@ -356,7 +356,7 @@ impl<'a, T> Iterator for Iter<'a, T> {
     }
 }
 
-impl<'a, T> IntoIterator for &'a Tree<T>
+impl<'a, T> IntoIterator for &'a BSTree<T>
 where
     T: Ord + Clone,
 {
@@ -376,8 +376,8 @@ where
 mod test {
     use super::*;
 
-    fn mock_tree<T: Ord + Clone>(nodes: Vec<T>) -> Tree<T> {
-        let mut tree = Tree::new();
+    fn mock_tree<T: Ord + Clone>(nodes: Vec<T>) -> BSTree<T> {
+        let mut tree = BSTree::new();
         for n in nodes {
             tree.insert(n);
         }
