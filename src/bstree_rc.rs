@@ -7,39 +7,6 @@ pub struct BSTree<T> {
     root: Option<Link<T>>,
 }
 
-pub struct Node<T> {
-    value: T,
-    left: Option<Link<T>>,
-    right: Option<Link<T>>,
-    parent: Option<Link<T>>,
-}
-
-impl<T> From<Node<T>> for Link<T> {
-    fn from(value: Node<T>) -> Self {
-        Rc::new(RefCell::new(value))
-    }
-}
-
-impl<T> Node<T> {
-    pub fn new(value: T) -> Self {
-        Self {
-            value,
-            left: None,
-            right: None,
-            parent: None,
-        }
-    }
-
-    pub fn new_with_parent(value: T, parent: Link<T>) -> Self {
-        Self {
-            value,
-            left: None,
-            right: None,
-            parent: Some(parent),
-        }
-    }
-}
-
 impl<T> BSTree<T>
 where
     T: Ord + Clone,
@@ -121,6 +88,59 @@ where
             };
         }
     }
+
+    pub fn min(&self) -> Option<Rc<RefCell<Node<T>>>> {
+        match &self.root {
+            Some(root) => {
+                let mut current = root.clone();
+                loop {
+                    // Borrow checker fight
+                    let temp = {
+                        let borrow = current.borrow();
+                        borrow.left.clone()
+                    };
+                    match temp {
+                        Some(node) => current = node.clone(),
+                        None => return Some(current.clone()),
+                    }
+                }
+            }
+            None => None,
+        }
+    }
+}
+
+pub struct Node<T> {
+    value: T,
+    left: Option<Link<T>>,
+    right: Option<Link<T>>,
+    parent: Option<Link<T>>,
+}
+
+impl<T> From<Node<T>> for Link<T> {
+    fn from(value: Node<T>) -> Self {
+        Rc::new(RefCell::new(value))
+    }
+}
+
+impl<T> Node<T> {
+    pub fn new(value: T) -> Self {
+        Self {
+            value,
+            left: None,
+            right: None,
+            parent: None,
+        }
+    }
+
+    pub fn new_with_parent(value: T, parent: Link<T>) -> Self {
+        Self {
+            value,
+            left: None,
+            right: None,
+            parent: Some(parent),
+        }
+    }
 }
 
 #[cfg(test)]
@@ -159,5 +179,19 @@ mod test {
         assert_eq!(tree.find(&3).unwrap().borrow().value, 3);
         assert_eq!(tree.find(&8).unwrap().borrow().value, 8);
         assert_eq!(tree.find(&14).unwrap().borrow().value, 14);
+    }
+
+    #[test]
+    fn min() {
+        let nodes = vec![8, 3, 10, 1, 6, 14, 4, 7, 13];
+        let tree = mock_tree(nodes);
+        assert_eq!(tree.min().unwrap().borrow().value, 1);
+    }
+
+    #[test]
+    fn min_is_root() {
+        let nodes = vec![1, 3];
+        let tree = mock_tree(nodes);
+        assert_eq!(tree.min().unwrap().borrow().value, 1);
     }
 }
