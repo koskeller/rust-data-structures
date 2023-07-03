@@ -65,6 +65,23 @@ impl<T> List<T> {
             next: self.head.as_deref_mut(),
         }
     }
+
+    pub fn reverse(&mut self) {
+        if self.head.is_none() || self.head.as_ref().unwrap().next.is_none() {
+            return;
+        }
+
+        let mut prev = None;
+        let mut current_node = self.head.take();
+        while current_node.is_some() {
+            let next = current_node.as_mut().unwrap().next.take();
+            current_node.as_mut().unwrap().next = prev.take();
+            prev = current_node.take();
+            current_node = next;
+        }
+
+        self.head = prev.take();
+    }
 }
 
 pub struct IntoIter<T>(List<T>);
@@ -213,5 +230,20 @@ mod test {
         assert_eq!(iter.next(), Some(&mut 3));
         assert_eq!(iter.next(), Some(&mut 2));
         assert_eq!(iter.next(), Some(&mut 1));
+    }
+
+    #[test]
+    fn reverse() {
+        let mut list = List::new();
+        list.push(1);
+        list.push(2);
+        list.push(3);
+        list.reverse();
+
+        let mut iter = list.iter();
+        assert_eq!(iter.next(), Some(&1));
+        assert_eq!(iter.next(), Some(&2));
+        assert_eq!(iter.next(), Some(&3));
+        assert_eq!(iter.next(), None);
     }
 }
