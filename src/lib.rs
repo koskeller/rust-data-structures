@@ -7,6 +7,7 @@ mod unsafe_singly_linked_queue;
 mod array_deque;
 mod array_queue;
 mod array_stack;
+mod auxiliary_stack;
 mod rootish_array_stack;
 
 mod circular_buffer;
