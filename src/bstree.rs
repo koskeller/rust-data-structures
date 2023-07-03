@@ -23,6 +23,10 @@ impl<T> Node<T> {
             right: None,
         }
     }
+
+    pub fn is_leaf(&self) -> bool {
+        self.left.is_none() && self.right.is_none()
+    }
 }
 
 impl<T> From<Node<T>> for Option<Box<Node<T>>> {
@@ -64,23 +68,21 @@ where
 
     // This code uses workaround for rust borrow checker issue discussed here:
     // https://github.com/rust-lang/rust/issues/54663
-    fn find_parent(&mut self, value: T) -> Option<&mut Box<Node<T>>> {
+    // TODO this version won't work if parent is Tree itself.
+    fn find_parent_mut(&mut self, value: T) -> Option<&mut Box<Node<T>>> {
         if self.root.is_none() {
             return None;
         }
 
-        let root = self.root.as_mut().expect("checked by root.is_none()");
-
-        let mut stack: Vec<&mut Box<Node<T>>> = Vec::new();
-        stack.push(root);
-
-        while let Some(node) = stack.pop() {
+        let mut node = self.root.as_mut().expect("checked by root.is_none()");
+        loop {
             if value < node.value {
                 if node.left.is_some() {
                     if value == node.left.as_ref().unwrap().value {
                         return Some(node);
                     } else {
-                        stack.push(node.left.as_mut().unwrap())
+                        node = node.left.as_mut().unwrap();
+                        continue;
                     }
                 } else {
                     return None;
@@ -90,11 +92,14 @@ where
                     if value == node.right.as_ref().unwrap().value {
                         return Some(node);
                     } else {
-                        stack.push(node.right.as_mut().unwrap())
+                        node = node.right.as_mut().unwrap();
+                        continue;
                     }
                 } else {
                     return None;
                 }
+            } else {
+                return None;
             }
         }
 
@@ -109,16 +114,68 @@ where
         }
     }
 
-    // pub fn delete(&mut self, value: T) -> Option<Box<Node<T>>> {
-    //     if let Some(ref mut node) = self.root {
-    //         if let Some(ref mut parent) = Self::find_parent(value, node) {
-    //             if let Some(ref mut target) = parent.left {
-    //             } else if let Some(ref mut target) = parent.right {
-    //             }
-    //         }
-    //     }
-    //     return None;
-    // }
+    pub fn delete(&mut self, value: &T) -> Option<T> {
+        match self.root {
+            Some(ref mut root) if &root.value == value => {
+                let left = root.left.take();
+                let right = root.right.take();
+                let root = self.root.take().unwrap();
+
+                if left.is_none() && right.is_none() {
+                    self.root = None;
+                } else if left.is_some() && right.is_none() {
+                    self.root = left;
+                } else if left.is_none() && right.is_some() {
+                    self.root = right;
+                } else {
+                    self.root = right;
+                    Tree::insert_recursive(self.root.as_mut().unwrap(), left.unwrap());
+                }
+                return Some(root.value);
+            }
+            _ => (),
+        }
+
+        if let Some(parent) = self.find_parent_mut(value.clone()) {
+            match parent.left {
+                Some(ref mut target) if &target.value == value => {
+                    let left = target.left.take();
+                    let right = target.right.take();
+                    let target = parent.left.take().unwrap();
+
+                    if left.is_some() && right.is_none() {
+                        parent.left = left;
+                    } else if left.is_none() && right.is_some() {
+                        parent.left = right;
+                    } else if left.is_some() && right.is_some() {
+                        parent.left = right;
+                        Tree::insert_recursive(parent.left.as_mut().unwrap(), left.unwrap());
+                    }
+                    return Some(target.value);
+                }
+                _ => (),
+            }
+            match parent.right {
+                Some(ref mut target) if &target.value == value => {
+                    let left = target.left.take();
+                    let right = target.right.take();
+                    let target = parent.right.take().unwrap();
+
+                    if left.is_some() && right.is_none() {
+                        parent.right = left;
+                    } else if left.is_none() && right.is_some() {
+                        parent.right = right;
+                    } else if left.is_some() && right.is_some() {
+                        parent.right = right;
+                        Tree::insert_recursive(parent.right.as_mut().unwrap(), left.unwrap());
+                    }
+                    return Some(target.value);
+                }
+                _ => (),
+            }
+        }
+        None
+    }
 
     fn insert_recursive(current: &mut Box<Node<T>>, node: Box<Node<T>>) {
         if node.value < current.value {
@@ -403,14 +460,68 @@ mod test {
         let nodes = vec![8, 3, 10, 1, 6, 14, 4, 7, 13];
         let mut tree = mock_tree(nodes);
 
-        assert!(tree.find_parent(8).is_none());
-        assert_eq!(tree.find_parent(3).unwrap().value, 8);
-        assert_eq!(tree.find_parent(10).unwrap().value, 8);
-        assert_eq!(tree.find_parent(1).unwrap().value, 3);
-        assert_eq!(tree.find_parent(6).unwrap().value, 3);
-        assert_eq!(tree.find_parent(14).unwrap().value, 10);
-        assert_eq!(tree.find_parent(4).unwrap().value, 6);
-        assert_eq!(tree.find_parent(7).unwrap().value, 6);
-        assert_eq!(tree.find_parent(13).unwrap().value, 14);
+        assert!(tree.find_parent_mut(8).is_none());
+        assert_eq!(tree.find_parent_mut(3).unwrap().value, 8);
+        assert_eq!(tree.find_parent_mut(10).unwrap().value, 8);
+        assert_eq!(tree.find_parent_mut(1).unwrap().value, 3);
+        assert_eq!(tree.find_parent_mut(6).unwrap().value, 3);
+        assert_eq!(tree.find_parent_mut(14).unwrap().value, 10);
+        assert_eq!(tree.find_parent_mut(4).unwrap().value, 6);
+        assert_eq!(tree.find_parent_mut(7).unwrap().value, 6);
+        assert_eq!(tree.find_parent_mut(13).unwrap().value, 14);
+    }
+
+    #[test]
+    fn delete_single_root() {
+        let nodes = vec![8];
+        let mut tree = mock_tree(nodes);
+        assert_eq!(tree.delete(&8), Some(8));
+        assert_eq!(tree.traverse_inorder_recursive(), vec![]);
+    }
+
+    #[test]
+    fn delete_root_left() {
+        let nodes = vec![8, 1];
+        let mut tree = mock_tree(nodes);
+        assert_eq!(tree.delete(&8), Some(8));
+        assert_eq!(tree.traverse_inorder_recursive(), vec![1]);
+    }
+
+    #[test]
+    fn delete_root_right() {
+        let nodes = vec![8, 11];
+        let mut tree = mock_tree(nodes);
+        assert_eq!(tree.delete(&8), Some(8));
+        assert_eq!(tree.traverse_inorder_recursive(), vec![11]);
+    }
+
+    #[test]
+    fn delete_root() {
+        let nodes = vec![8, 1, 11, 9];
+        let mut tree = mock_tree(nodes);
+        assert_eq!(tree.delete(&8), Some(8));
+        assert_eq!(tree.traverse_inorder_recursive(), vec![1, 9, 11]);
+        assert_eq!(tree.find_parent_mut(1).unwrap().value, 9);
+    }
+
+    #[test]
+    fn delete() {
+        let nodes = vec![8, 3, 10, 1, 6, 14, 4, 7, 13];
+        let mut tree = mock_tree(nodes);
+
+        assert_eq!(tree.delete(&8), Some(8));
+        assert_eq!(
+            tree.traverse_inorder_recursive(),
+            vec![1, 3, 4, 6, 7, 10, 13, 14]
+        );
+        assert_eq!(tree.root.as_ref().unwrap().value, 10);
+
+        assert_eq!(tree.delete(&1), Some(1));
+        assert_eq!(
+            tree.traverse_inorder_recursive(),
+            vec![3, 4, 6, 7, 10, 13, 14]
+        );
+        assert_eq!(tree.delete(&14), Some(14));
+        assert_eq!(tree.traverse_inorder_recursive(), vec![3, 4, 6, 7, 10, 13]);
     }
 }
