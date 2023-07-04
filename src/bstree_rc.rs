@@ -1,5 +1,5 @@
 #![allow(unused)]
-use std::{cell::RefCell, rc::Rc};
+use std::{cell::RefCell, collections::VecDeque, rc::Rc};
 
 type Link<T> = Rc<RefCell<Node<T>>>;
 
@@ -108,6 +108,33 @@ where
             None => None,
         }
     }
+
+    // Breath first traversal
+    pub fn height(&self) -> usize {
+        if self.root.is_none() {
+            return 0;
+        }
+
+        let mut depth = 0;
+        let mut deq = VecDeque::new();
+        deq.push_front(self.root.as_ref().unwrap().clone());
+
+        while !deq.is_empty() {
+            depth += 1;
+            for _ in 0..deq.len() {
+                if let Some(node) = deq.pop_front() {
+                    if let Some(ref left) = node.borrow().left {
+                        deq.push_back(left.clone());
+                    }
+                    if let Some(ref right) = node.borrow().right {
+                        deq.push_back(right.clone());
+                    }
+                }
+            }
+        }
+
+        depth
+    }
 }
 
 pub struct Node<T> {
@@ -193,5 +220,33 @@ mod test {
         let nodes = vec![1, 3];
         let tree = mock_tree(nodes);
         assert_eq!(tree.min().unwrap().borrow().value, 1);
+    }
+
+    #[test]
+    fn height_0() {
+        let nodes = vec![1];
+        let tree = mock_tree(nodes);
+        assert_eq!(tree.height(), 1);
+    }
+
+    #[test]
+    fn height_3() {
+        let nodes = vec![3, 2, 1];
+        let tree = mock_tree(nodes);
+        assert_eq!(tree.height(), 3);
+    }
+
+    #[test]
+    fn height_1() {
+        let nodes = vec![1, 3];
+        let tree = mock_tree(nodes);
+        assert_eq!(tree.height(), 2);
+    }
+
+    #[test]
+    fn height_5() {
+        let nodes = vec![1, 2, 3, 4, 5, 6];
+        let tree = mock_tree(nodes);
+        assert_eq!(tree.height(), 6);
     }
 }

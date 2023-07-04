@@ -1,7 +1,6 @@
 #![allow(unused)]
 /// Stack  that supports .push(x), .pop(), and .min(),
 /// which returns the minimum element of S. All operations run in constant time.
-
 pub struct Stack<T> {
     stack: Vec<T>,
     min_stack: Vec<T>,
