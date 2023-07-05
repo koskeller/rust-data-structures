@@ -170,6 +170,72 @@ impl<T> Node<T> {
     }
 }
 
+use super::linked_list_simple::List;
+
+fn merge_to_ll<T: Ord + Clone>(tree1: &BSTree<T>, tree2: &BSTree<T>) -> List<T> {
+    let mut list: List<T> = List::new();
+
+    let mut stack1 = Vec::new();
+    let mut stack2 = Vec::new();
+    let mut current1 = tree1.root.as_ref().map(Clone::clone);
+    let mut current2 = tree2.root.as_ref().map(Clone::clone);
+
+    while !stack1.is_empty() || current1.is_some() {
+        while let Some(node) = current1 {
+            stack1.push(node.clone());
+            current1 = node.borrow().left.as_ref().map(Clone::clone);
+        }
+        while let Some(node) = current2 {
+            stack2.push(node.clone());
+            current2 = node.borrow().left.as_ref().map(Clone::clone);
+        }
+
+        match stack1.get(stack1.len() - 1) {
+            Some(node1) => match stack2.get(stack2.len() - 1) {
+                Some(node2) => {
+                    if node1.borrow().value < node2.borrow().value {
+                        if let Some(node) = stack1.pop() {
+                            list.push(node.borrow().value.clone());
+                            current1 = node.borrow().right.as_ref().map(Clone::clone);
+                        }
+                    } else {
+                        if let Some(node) = stack2.pop() {
+                            current2 = node.borrow().right.as_ref().map(Clone::clone);
+                            list.push(node.borrow().value.clone());
+                        }
+                    }
+                }
+                None => {
+                    if let Some(node) = stack1.pop() {
+                        current1 = node.borrow().right.as_ref().map(Clone::clone);
+                        list.push(node.borrow().value.clone());
+                    }
+                }
+            },
+            None => {
+                if let Some(node) = stack2.pop() {
+                    current2 = node.borrow().right.as_ref().map(Clone::clone);
+                    list.push(node.borrow().value.clone());
+                }
+            }
+        }
+    }
+
+    while !stack2.is_empty() || current2.is_some() {
+        while let Some(node) = current2 {
+            stack2.push(node.clone());
+            current2 = node.borrow().left.as_ref().map(Clone::clone);
+        }
+
+        if let Some(node) = stack2.pop() {
+            current2 = node.borrow().right.as_ref().map(Clone::clone);
+            list.push(node.borrow().value.clone());
+        }
+    }
+
+    list
+}
+
 #[cfg(test)]
 mod test {
     use super::*;
@@ -248,5 +314,20 @@ mod test {
         let nodes = vec![1, 2, 3, 4, 5, 6];
         let tree = mock_tree(nodes);
         assert_eq!(tree.height(), 6);
+    }
+
+    #[test]
+    fn merge_to_linked_list() {
+        let tree1 = mock_tree(vec![4, 2, 1]);
+        let tree2 = mock_tree(vec![5, 3, 6]);
+
+        let mut list = merge_to_ll(&tree1, &tree2);
+        assert_eq!(list.pop(), Some(6));
+        assert_eq!(list.pop(), Some(5));
+        assert_eq!(list.pop(), Some(4));
+        assert_eq!(list.pop(), Some(3));
+        assert_eq!(list.pop(), Some(2));
+        assert_eq!(list.pop(), Some(1));
+        assert_eq!(list.pop(), None);
     }
 }
