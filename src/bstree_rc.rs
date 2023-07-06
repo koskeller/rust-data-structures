@@ -115,12 +115,12 @@ where
             return 0;
         }
 
-        let mut depth = 0;
+        let mut height = 0;
         let mut deq = VecDeque::new();
         deq.push_front(self.root.as_ref().unwrap().clone());
 
         while !deq.is_empty() {
-            depth += 1;
+            height += 1;
             for _ in 0..deq.len() {
                 if let Some(node) = deq.pop_front() {
                     if let Some(ref left) = node.borrow().left {
@@ -133,7 +133,35 @@ where
             }
         }
 
-        depth
+        height
+    }
+
+    pub fn is_balanced(&self) -> bool {
+        let (balanced, height) = Self::check_balanced(self.root.clone());
+        balanced
+    }
+
+    fn check_balanced(node: Option<Link<T>>) -> (bool, i32) {
+        match node {
+            Some(node) => {
+                let (left_balanced, left_height) = Self::check_balanced(node.borrow().left.clone());
+                if !left_balanced {
+                    return (false, 0);
+                }
+
+                let (right_balanced, right_height) =
+                    Self::check_balanced(node.borrow().right.clone());
+                if !right_balanced {
+                    return (false, 0);
+                }
+
+                (
+                    (left_height - right_height).abs() < 2,
+                    std::cmp::max(left_height, right_height) + 1,
+                )
+            }
+            None => (true, -1),
+        }
     }
 }
 
@@ -329,5 +357,33 @@ mod test {
         assert_eq!(list.pop(), Some(2));
         assert_eq!(list.pop(), Some(1));
         assert_eq!(list.pop(), None);
+    }
+
+    #[test]
+    fn check_balanced_empty() {
+        let nodes: Vec<usize> = vec![];
+        let tree = mock_tree(nodes);
+        assert_eq!(BSTree::check_balanced(tree.root.clone()).0, true);
+    }
+
+    #[test]
+    fn check_balanced_balanced() {
+        let nodes = vec![2, 1, 2];
+        let tree = mock_tree(nodes);
+        assert_eq!(BSTree::check_balanced(tree.root.clone()).0, true);
+    }
+
+    #[test]
+    fn check_balanced_not_perfect() {
+        let nodes = vec![4, 3, 2, 1, 5];
+        let tree = mock_tree(nodes);
+        assert_eq!(BSTree::check_balanced(tree.root.clone()).0, false);
+    }
+
+    #[test]
+    fn check_balanced_right_heavy() {
+        let nodes = vec![1, 2, 3, 4, 5, 6];
+        let tree = mock_tree(nodes);
+        assert_eq!(BSTree::check_balanced(tree.root.clone()).0, false);
     }
 }

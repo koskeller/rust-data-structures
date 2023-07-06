@@ -16,5 +16,3 @@ mod hash_map;
 
 mod bstree_box;
 mod bstree_rc;
-
-mod merge_bstree;
