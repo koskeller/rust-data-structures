@@ -163,6 +163,39 @@ where
             None => (true, -1),
         }
     }
+
+    pub fn is_valid(&self) -> bool {
+        match &self.root {
+            Some(node) => Self::check_valid(node.clone()),
+            None => true,
+        }
+    }
+
+    fn check_valid(node: Link<T>) -> bool {
+        if let Some(left) = &node.borrow().left {
+            if left.borrow().value > node.borrow().value {
+                return false;
+            }
+
+            let left = Self::check_valid(left.clone());
+            if left == false {
+                return false;
+            }
+        }
+
+        if let Some(right) = &node.borrow().right {
+            if right.borrow().value < node.borrow().value {
+                return false;
+            }
+
+            let right = Self::check_valid(right.clone());
+            if right == false {
+                return false;
+            }
+        }
+
+        return true;
+    }
 }
 
 pub struct Node<T> {
@@ -385,5 +418,43 @@ mod test {
         let nodes = vec![1, 2, 3, 4, 5, 6];
         let tree = mock_tree(nodes);
         assert_eq!(BSTree::check_balanced(tree.root.clone()).0, false);
+    }
+
+    #[test]
+    fn is_valid_empty() {
+        let nodes: Vec<usize> = vec![];
+        let tree = mock_tree(nodes);
+        assert_eq!(tree.is_valid(), true);
+    }
+
+    #[test]
+    fn is_valid_ok() {
+        let nodes = vec![1, 2, 3, 4, 5, 6];
+        let tree = mock_tree(nodes);
+        assert_eq!(tree.is_valid(), true);
+    }
+
+    #[test]
+    fn is_valid_not_valid() {
+        let nodes = vec![8, 3, 10, 1, 6, 14, 4, 7, 13];
+        let mut tree = mock_tree(nodes);
+        tree.root.as_mut().unwrap().borrow_mut().value = 0;
+        assert_eq!(tree.is_valid(), false);
+    }
+
+    #[test]
+    fn is_valid_not_valid_left() {
+        let nodes = vec![8, 3, 10, 1, 6, 14, 4, 7, 13];
+        let mut tree = mock_tree(nodes);
+        tree.root
+            .as_mut()
+            .unwrap()
+            .borrow_mut()
+            .left
+            .as_mut()
+            .unwrap()
+            .borrow_mut()
+            .value = 0;
+        assert_eq!(tree.is_valid(), false);
     }
 }
