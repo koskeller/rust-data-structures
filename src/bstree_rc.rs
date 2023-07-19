@@ -173,7 +173,7 @@ where
 
     fn check_valid(node: Link<T>) -> bool {
         if let Some(left) = &node.borrow().left {
-            if left.borrow().value > node.borrow().value {
+            if left.borrow().value >= node.borrow().value {
                 return false;
             }
 
@@ -184,7 +184,7 @@ where
         }
 
         if let Some(right) = &node.borrow().right {
-            if right.borrow().value < node.borrow().value {
+            if right.borrow().value <= node.borrow().value {
                 return false;
             }
 
