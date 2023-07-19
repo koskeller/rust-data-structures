@@ -15,6 +15,12 @@ where
         Self { heap: Vec::new() }
     }
 
+    fn sort(&mut self) {
+        for n in (0..self.heap.len() / 2).into_iter().rev() {
+            self.bubble_down(n);
+        }
+    }
+
     pub fn insert(&mut self, value: T) {
         self.heap.push(value);
         self.bubble_up(self.heap.len() - 1);
@@ -37,11 +43,11 @@ where
         }
 
         let min_value = self.heap.swap_remove(0);
-        self.buble_down(0);
+        self.bubble_down(0);
         Some(min_value)
     }
 
-    fn buble_down(&mut self, index: usize) {
+    fn bubble_down(&mut self, index: usize) {
         let len = self.heap.len();
         let mut parent_index = index;
 
@@ -74,9 +80,8 @@ where
 {
     fn from(value: Vec<T>) -> Self {
         let mut heap = Self::new();
-        for v in value {
-            heap.insert(v);
-        }
+        heap.heap = value;
+        heap.sort();
         heap
     }
 }
@@ -100,7 +105,7 @@ mod test {
     #[test]
     fn insert_negative() {
         let mut heap: MinHeap<_> = vec![2, 1, -2, -5, 0].into();
-        assert_eq!(heap.heap, vec![-5, -2, 1, 2, 0]);
+        assert_eq!(heap.heap, vec![-5, 0, -2, 1, 2]);
     }
 
     #[test]
