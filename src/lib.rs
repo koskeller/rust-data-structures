@@ -12,6 +12,7 @@ mod rootish_array_stack;
 
 mod circular_buffer;
 
+mod bloom_filter;
 mod hash_map;
 
 mod bstree_box;
